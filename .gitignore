@@ -1,0 +1,22 @@
+# Common files:
+*#*
+*~*
+*pyc*
+*.cache*
+
+# Testing files:
+.coverage
+htmlcov/
+
+# Pycharm generated files:
+*idea*
+
+# Setuptools distribution files:
+/dist/
+*/env/*
+*env*
+MANIFEST.in
+setup.sh
+
+# Other files:
+# db.sqlite3

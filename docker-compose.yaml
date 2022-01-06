@@ -1,0 +1,91 @@
+version: '3.4'
+
+services:
+  app:
+    build: .
+    command: bash -c "python manage.py runserver 0.0.0.0:8000"
+    container_name: app
+    depends_on:
+      - redis
+      - rabbitmq
+    ports:
+      - "8000:8000"
+    hostname: app
+    image: app:1.0.0
+    networks:
+      - main
+    restart: on-failure
+    environment:
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+
+  rabbitmq:
+    container_name: rabbitmq
+    hostname: rabbitmq
+    image: rabbitmq:3-management
+    networks:
+      - main
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: on-failure
+    environment:
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+
+  celery_worker:
+    command: bash -c "/usr/wait-for-it.sh --timeout=0 rabbitmq:5672 && /usr/wait-for-it.sh --timeout=0 app:8000 -- celery -A planning_optimization_problem worker -l info"
+    container_name: celery_worker
+    depends_on:
+      - app
+      - redis
+      - rabbitmq
+    hostname: celery_worker
+    image: app:1.0.0
+    networks:
+      - main
+    restart: on-failure
+    environment:
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+
+  frontier_consumer:
+    command: bash -c "/usr/wait-for-it.sh --timeout=0 rabbitmq:5672 && python manage.py rabbitmq_frontier_consumer"
+    container_name: frontier_consumer
+    depends_on:
+      - redis
+      - rabbitmq
+    hostname: frontier_consumer
+    image: app:1.0.0
+    networks:
+      - main
+    restart: on-failure
+    environment:
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+
+  router_consumer:
+    command: bash -c "/usr/wait-for-it.sh --timeout=0 rabbitmq:5672 && python manage.py rabbitmq_router_consumer"
+    container_name: router_consumer
+    depends_on:
+      - redis
+      - rabbitmq
+    hostname: router_consumer
+    image: app:1.0.0
+    networks:
+      - main
+    restart: on-failure
+    environment:
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+
+  redis:
+    hostname: redis
+    image: redis:latest
+    container_name: redis
+    networks:
+      - main
+    restart: on-failure
+
+networks:
+  main:
